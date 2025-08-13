@@ -1,0 +1,48 @@
+[
+  {
+    "id": "swt-potato-quinoa-bowl",
+    "title": "קערת בטטה וקינואה",
+    "image": "foodgenius/quinoa_bowl",
+    "ingredients": [
+      {
+        "name": "בטטה",
+        "amount": "2 בינוניות",
+        "unit": "יח'"
+      },
+      {
+        "name": "קינואה",
+        "amount": "1",
+        "unit": "כוס"
+      },
+      {
+        "name": "שמן זית",
+        "amount": "2",
+        "unit": "כפות"
+      },
+      {
+        "name": "מלח",
+        "amount": "לפי הטעם"
+      },
+      {
+        "name": "פלפל שחור",
+        "amount": "לפי הטעם"
+      }
+    ],
+    "steps": [
+      "קולים את הבטטה",
+      "מבשלים קינואה",
+      "מערבבים ומגישים"
+    ],
+    "nutrition": {
+      "cal": 520,
+      "protein": 14,
+      "fat": 18,
+      "carbs": 78
+    },
+    "tags": [
+      "טבעוני",
+      "ללא-ביצה"
+    ],
+    "source": "local"
+  }
+]

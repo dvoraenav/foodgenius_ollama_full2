@@ -1,0 +1,11 @@
+* { font-family: 'Segoe UI', 'Rubik', 'Heebo', sans-serif; }
+QWidget#Canvas { background: #f6f7fb; }
+QFrame#Header {
+  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0ea5e9, stop:1 #10b981);
+  color: white; border: none;
+}
+QLineEdit { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; }
+QPushButton { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px 14px; }
+QPushButton[accent="true"] { background:#10b981; color:#fff; border:none; }
+QFrame.card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; }
+QFrame.card:hover { border-color:#10b981; }
