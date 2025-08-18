@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QFrame
 from PySide6.QtCore import Qt
+import json
+import re
 
 class AuthUIBuilder:
     """Helper class to build authentication UI components"""
@@ -22,6 +24,132 @@ class AuthUIBuilder:
         header_layout.addWidget(subtitle)
         
         return header_frame, title, subtitle
+    
+    @staticmethod
+    def create_error_message():
+        """Create error message label"""
+        error_label = QLabel()
+        error_label.setAlignment(Qt.AlignCenter)
+        error_label.setStyleSheet('''
+            QLabel {
+                background-color: #ffebee;
+                color: #c62828;
+                border: 1px solid #ef5350;
+                border-radius: 4px;
+                padding: 10px;
+                margin: 5px 0;
+                font-weight: bold;
+            }
+        ''')
+        error_label.hide()  # Hidden by default
+        return error_label
+    
+    @staticmethod
+    def create_success_message():
+        """Create success message label"""
+        success_label = QLabel()
+        success_label.setAlignment(Qt.AlignCenter)
+        success_label.setStyleSheet('''
+            QLabel {
+                background-color: #e8f5e8;
+                color: #2e7d32;
+                border: 1px solid #4caf50;
+                border-radius: 4px;
+                padding: 10px;
+                margin: 5px 0;
+                font-weight: bold;
+            }
+        ''')
+        success_label.hide()  # Hidden by default
+        return success_label
+    
+    @staticmethod
+    def parse_error_message(error_str: str) -> str:
+        """Parse and convert error message to user-friendly Hebrew"""
+        # Common error patterns and their Hebrew translations
+        error_patterns = {
+            "Bad credentials": "פרטי התחברות שגויים",
+            "Email already registered": "כתובת האימייל כבר רשומה במערכת",
+            "Invalid email": "כתובת אימייל לא תקינה",
+            "Password too short": "הסיסמה קצרה מדי",
+            "Connection error": "שגיאת חיבור לשרת",
+            "Timeout": "החיבור לשרת נכשל - נסה שוב",
+            "Network error": "בעיית רשת - בדוק את החיבור שלך",
+            "401": "פרטי התחברות שגויים",
+            "400": "בקשה שגויה - בדוק את הפרטים שהזנת",
+            "422": "פרטים לא תקינים - נסה שוב",
+            "500": "שגיאה בשרת - נסה שוב מאוחר יותר",
+            "404": "השירות אינו זמין כרגע"
+        }
+        
+        # Try to extract JSON error detail
+        try:
+            # Look for JSON in the error string
+            json_match = re.search(r'{.*}', error_str)
+            if json_match:
+                error_json = json.loads(json_match.group())
+                if 'detail' in error_json:
+                    detail = error_json['detail']
+                    # Check for specific patterns first
+                    if "Email already registered" in detail:
+                        return "כתובת האימייל הזו כבר רשומה במערכת"
+                    elif "Bad credentials" in detail:
+                        return "פרטי התחברות שגויים"
+                    # Check for other patterns
+                    for pattern, hebrew in error_patterns.items():
+                        if pattern.lower() in detail.lower():
+                            return hebrew
+                    return f"שגיאה: {detail}"
+        except:
+            pass
+        
+        # Check for specific error patterns in the raw string
+        error_lower = error_str.lower()
+        for pattern, hebrew in error_patterns.items():
+            if pattern.lower() in error_lower:
+                return hebrew
+        
+        # Extract status code if present
+        status_match = re.search(r'(\d{3}):', error_str)
+        if status_match:
+            status_code = status_match.group(1)
+            if status_code in error_patterns:
+                return error_patterns[status_code]
+            return f"שגיאה {status_code} - נסה שוב מאוחר יותר"
+        
+        # Check for specific 422 validation errors
+        if "422" in error_str:
+            if "email" in error_lower:
+                return "כתובת האימייל לא תקינה"
+            elif "password" in error_lower:
+                return "הסיסמה לא עומדת בדרישות"
+            elif "name" in error_lower:
+                return "השם לא תקין"
+            else:
+                return "הפרטים שהוזנו לא תקינים - בדוק ונסה שוב"
+        
+        # Default fallback
+        return "שגיאה לא צפויה - נסה שוב מאוחר יותר"
+    
+    @staticmethod
+    def show_error_message(error_label: QLabel, message: str):
+        """Show error message with exclamation icon"""
+        # Parse the error message to make it user-friendly
+        friendly_message = AuthUIBuilder.parse_error_message(message)
+        error_label.setText(f"⚠️ {friendly_message}")
+        error_label.show()
+    
+    @staticmethod
+    def show_success_message(success_label: QLabel, message: str):
+        """Show success message with check icon"""
+        success_label.setText(f"✅ {message}")
+        success_label.show()
+    
+    @staticmethod
+    def hide_messages(error_label: QLabel, success_label: QLabel):
+        """Hide both error and success messages"""
+        error_label.hide()
+        success_label.hide()
     
     @staticmethod
     def create_input_field(placeholder: str, is_password: bool = False, is_hidden: bool = False):
