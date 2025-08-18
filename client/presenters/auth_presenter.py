@@ -1,6 +1,7 @@
 from services.api_client import ApiClient
 from services.auth import AUTH
 
+
 class AuthPresenter:
     def __init__(self, view):
         self.view = view
