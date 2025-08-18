@@ -27,6 +27,7 @@ class AuthPresenter:
             return True, ""
         except Exception as e:
             message = str(e)
-            if "422" in message and "already exists" in message:
+            if ("422" in message or "400" in message) and ("already exists" in message or "already registered" in message):
                 return False, "משתמש עם כתובת מייל זו כבר קיים במערכת"
             return False, message
+
