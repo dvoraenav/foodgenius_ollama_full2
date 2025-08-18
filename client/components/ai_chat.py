@@ -24,11 +24,18 @@ class AIChat(QFrame):
 
     def ask(self):
         q = self.inp.toPlainText().strip()
-        if not q: return
+        if not q:
+            print("❌ לא הוזנה שאלה.")
+            return
+
+        print(f"📤 שאלה נשלחת לשרת: {q}")
         try:
             data = self.p.chat(self.recipe_id, q)
-            ans = data.get("answer","")
+            print("✅ תשובה שהתקבלה מהשרת:", data)
+            ans = data.get("answer", "")
             self.out.append(f"את: {q}\nAI: {ans}\n")
             self.inp.clear()
         except Exception as e:
+            print("❌ שגיאה:", e)
             self.out.append(f"[שגיאה] {e}")
+

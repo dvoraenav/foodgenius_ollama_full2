@@ -17,8 +17,8 @@ class RecipeView(QDialog):
         self.nutrition = QLabel(""); self.nutrition.setAlignment(Qt.AlignRight)
 
         self.btn_vegan = QPushButton("הפוך לטבעוני"); self.btn_scale = QPushButton("שנה מנות…")
-        self.btn_vegan_llm = QPushButton("הפוך לטבעוני (AI)"); self.btn_vegan_llm.setProperty("accent", True)
-        self.btn_vegan.clicked.connect(self.make_vegan); self.btn_scale.clicked.connect(self.scale_servings); self.btn_vegan_llm.clicked.connect(self.make_vegan_llm)
+        
+        self.btn_vegan.clicked.connect(self.make_vegan); self.btn_scale.clicked.connect(self.scale_servings); 
 
         self.img_label = QLabel(); self.img_label.setFixedSize(420, 260); self.img_label.setAlignment(Qt.AlignCenter)
         self.ing_box = QTextEdit(); self.ing_box.setReadOnly(True)
@@ -26,7 +26,7 @@ class RecipeView(QDialog):
 
         top = QVBoxLayout(self)
         top.addWidget(self.title); top.addWidget(self.nutrition)
-        row_btn = QHBoxLayout(); row_btn.addWidget(self.btn_vegan); row_btn.addWidget(self.btn_scale); row_btn.addWidget(self.btn_vegan_llm); row_btn.addStretch(1)
+        row_btn = QHBoxLayout(); row_btn.addWidget(self.btn_vegan); row_btn.addWidget(self.btn_scale); row_btn.addStretch(1)
         top.addLayout(row_btn)
 
         row = QHBoxLayout()
