@@ -1,3 +1,5 @@
+"""Generates a Cloudinary image URL with transformation params from a public ID"""
+
 import os
 from urllib.parse import quote
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")

@@ -2,6 +2,9 @@ import json
 import os
 from pathlib import Path
 
+"""AuthStore: handles saving/loading/clearing user authentication token & info from ~/.foodgenius_auth.json"""
+
+
 class AuthStore:
     def __init__(self):
         self.token = None

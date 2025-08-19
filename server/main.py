@@ -8,7 +8,7 @@ load_dotenv()
 
 print(f"DEBUG: CLOUDINARY_URL = {os.getenv('CLOUDINARY_URL')}")
 try:
-    from server.api import auth, ai
+    from api import auth, ai
     from server.infrastructure.db import init_db
 except ModuleNotFoundError:
     from api import auth, ai
