@@ -2,9 +2,11 @@ import requests
 from config import API_BASE_URL
 from services.auth import AUTH
 
+DEFAULT_TIMEOUT = 20
+
 class ApiClient:
     def __init__(self, base_url: str = API_BASE_URL):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
 
     def _headers(self):
         headers = {"Content-Type": "application/json"}
@@ -12,14 +14,14 @@ class ApiClient:
             headers["Authorization"] = f"Bearer {AUTH.token}"
         return headers
 
-    def get(self, path: str, params=None):
-        r = requests.get(self.base_url + path, params=params, headers=self._headers(), timeout=20)
+    def get(self, path: str, params=None, timeout: int = DEFAULT_TIMEOUT):
+        r = requests.get(self.base_url + path, params=params, headers=self._headers(), timeout=timeout)
         if not r.ok:
             raise Exception(f"{r.status_code}: {r.text}")
         return r.json()
 
-    def post(self, path: str, data=None):
-        r = requests.post(self.base_url + path, json=data or {}, headers=self._headers(), timeout=20)
+    def post(self, path: str, json=None, timeout: int = DEFAULT_TIMEOUT):
+        r = requests.post(self.base_url + path, json=json or {}, headers=self._headers(), timeout=timeout)
         if not r.ok:
             raise Exception(f"{r.status_code}: {r.text}")
         return r.json()
@@ -33,7 +35,8 @@ class ApiClient:
 
     # --- AI Chat ---
     def chat(self, question: str, recipe_id: str | None = None):
-        return self.post("/ai/chat", {"question": question, "recipe_id": recipe_id})
+        # צ’אט מקבל timeout ארוך יותר
+        return self.post("/ai/chat", {"question": question, "recipe_id": recipe_id}, timeout=60)
 
     # --- הרשמה והתחברות ---
     def register(self, email: str, name: str, password: str):
