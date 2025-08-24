@@ -1,3 +1,4 @@
+# server/services/nutrition_api_service.py
 import requests
 import os
 from typing import List, Dict, Optional
@@ -88,10 +89,21 @@ class NutritionAPIService:
         total_fat = 0
         
         for item in data:
-            total_calories += item.get('calories', 0)
-            total_protein += item.get('protein_g', 0)
-            total_carbs += item.get('carbohydrates_total_g', 0)
-            total_fat += item.get('fat_total_g', 0)
+            # Safely convert to float, handle strings and None values
+            try:
+                calories = float(item.get('calories', 0) or 0)
+                protein = float(item.get('protein_g', 0) or 0)
+                carbs = float(item.get('carbohydrates_total_g', 0) or 0)
+                fat = float(item.get('fat_total_g', 0) or 0)
+                
+                total_calories += calories
+                total_protein += protein
+                total_carbs += carbs
+                total_fat += fat
+                
+            except (ValueError, TypeError) as e:
+                print(f"Error processing nutrition item {item}: {e}")
+                continue
         
         return {
             'calories': int(total_calories),

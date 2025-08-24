@@ -168,26 +168,19 @@ class RecipeView(QDialog):
         self.steps_area.setPlainText(steps_text)
 
     def open_nutrition(self):
-        """פותח דיאלוג עם גרף התזונה"""
+        """פותח דיאלוג עם גרף התזונה - עם נתונים אמיתיים מ-API"""
         if not self.current_recipe_data:
             return
             
-        # Check if nutrition chart is available
         if not CHART_AVAILABLE:
-            # Show simple nutrition info if chart not available
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(
-                self, 
-                "Nutrition Info", 
-                "Nutrition charts require matplotlib.\nInstall with: pip install matplotlib"
-            )
+            QMessageBox.information(self, "Nutrition Info", "Nutrition charts require matplotlib.")
             return
         
         try:
-            # Create nutrition dialog
             dlg = QDialog(self)
             dlg.setWindowTitle("Nutrition Information")
-            dlg.setFixedSize(600, 550)  # Fixed size for better layout
+            dlg.setFixedSize(650, 600)
             dlg.setStyleSheet("background-color: #f9fafb;")
             
             layout = QVBoxLayout(dlg)
@@ -197,29 +190,38 @@ class RecipeView(QDialog):
             # Title
             title = QLabel(f"Nutrition for: {self.current_recipe_data.get('title', 'Recipe')}")
             title.setStyleSheet("""
-                font-size: 20px; 
-                font-weight: bold; 
-                color: #1f2937; 
-                margin-bottom: 10px;
-                padding: 10px;
-                background: white;
-                border-radius: 8px;
+                font-size: 20px; font-weight: bold; color: #1f2937; 
+                padding: 15px; background: white; border-radius: 12px;
                 border: 1px solid #e5e7eb;
             """)
             title.setAlignment(Qt.AlignCenter)
             layout.addWidget(title)
             
-            # Calculate nutrition from ingredients
-            ingredients = self.current_recipe_data.get("ingredients") or []
-            nutrition_data = calculate_nutrition_from_ingredients(ingredients)
+            # Loading message
+            loading_label = QLabel("Loading real nutrition data...")
+            loading_label.setStyleSheet("color: #6b7280; font-size: 14px;")
+            loading_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(loading_label)
             
-            # Create chart with better sizing
+            # Try API first, fallback to local
+            ingredients = self.current_recipe_data.get("ingredients") or []
+            nutrition_data = self.api.get_nutrition_data(ingredients)
+            source_text = "Real nutrition data from API-Ninjas"
+            
+            if not nutrition_data:
+                nutrition_data = calculate_nutrition_from_ingredients(ingredients)
+                source_text = "Estimated values based on ingredient database"
+            
+            # Remove loading
+            loading_label.setParent(None)
+            
+            # Create chart
             chart = NutritionChart(nutrition_data)
-            chart.setFixedHeight(350)
+            chart.setFixedHeight(380)
             layout.addWidget(chart)
             
             # Info text
-            info_text = QLabel(f"Estimated values based on {len(ingredients)} ingredients")
+            info_text = QLabel(f"{source_text} • {len(ingredients)} ingredients")
             info_text.setStyleSheet("color: #6b7280; font-size: 12px; font-style: italic;")
             info_text.setAlignment(Qt.AlignCenter)
             layout.addWidget(info_text)
@@ -227,7 +229,7 @@ class RecipeView(QDialog):
             # Close button
             close_btn = QPushButton("Close")
             close_btn.setProperty("accent", True)
-            close_btn.setFixedHeight(40)
+            close_btn.setFixedHeight(45)
             close_btn.clicked.connect(dlg.accept)
             layout.addWidget(close_btn)
             

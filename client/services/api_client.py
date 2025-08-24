@@ -48,3 +48,24 @@ class ApiClient:
     def login(self, email: str, password: str):
         return self.post("/auth/login", {"email": email, "password": password})
     
+    # --- NEW: Nutrition API Methods ---
+    def get_nutrition_data(self, ingredients):
+        """Get nutrition data from server API"""
+        try:
+            response = self.post("/nutrition/calculate", ingredients)
+            if response and response.get("success"):
+                return response.get("data")
+            return None
+        except Exception as e:
+            print(f"Error getting nutrition data: {e}")
+            return None
+
+    def test_nutrition_api(self):
+        """Test if nutrition API is working"""
+        try:
+            response = self.get("/nutrition/test")
+            return response
+        except Exception as e:
+            print(f"Error testing nutrition API: {e}")
+            return {"api_available": False, "error": str(e)}
+    

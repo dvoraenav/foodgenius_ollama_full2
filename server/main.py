@@ -3,10 +3,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api import recipe_routes
+from api.nutrition import router as nutrition_router
 
 load_dotenv()
-
+load_dotenv()
 print(f"DEBUG: CLOUDINARY_URL = {os.getenv('CLOUDINARY_URL')}")
+print(f"DEBUG: API_NINJAS_KEY = {os.getenv('API_NINJAS_KEY')}") 
+
 try:
     from api import auth, ai
     from server.infrastructure.db import init_db
@@ -20,6 +23,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(recipe_routes.router, prefix="/recipes", tags=["recipes"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
+app.include_router(nutrition_router) 
 
 @app.on_event("startup")
 def _startup():
