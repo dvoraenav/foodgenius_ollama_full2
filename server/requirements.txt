@@ -8,3 +8,5 @@ PyJWT
 httpx
 cloudinary
 python-dotenv
+matplotlib
+PySide6
