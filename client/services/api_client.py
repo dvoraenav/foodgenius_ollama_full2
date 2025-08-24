@@ -47,3 +47,4 @@ class ApiClient:
 
     def login(self, email: str, password: str):
         return self.post("/auth/login", {"email": email, "password": password})
+    
