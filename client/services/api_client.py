@@ -37,7 +37,10 @@ class ApiClient:
     def chat(self, question: str, recipe_id: str | None = None):
         # צ’אט מקבל timeout ארוך יותר
         return self.post("/ai/chat", {"question": question, "recipe_id": recipe_id}, timeout=60)
-
+    # --- לוגו ---
+    def get_logo_url(self, width: int = 120, height: int = 40):
+        return self.get("/recipes/logo", {"width": width, "height": height})
+    
     # --- הרשמה והתחברות ---
     def register(self, email: str, name: str, password: str):
         return self.post("/auth/register", {"email": email, "name": name, "password": password})

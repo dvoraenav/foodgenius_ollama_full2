@@ -28,3 +28,12 @@ def _startup():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+@app.get("/test-cloudinary")
+def test_cloudinary():
+    from services.cloudinary_service import cloudinary_service
+    debug_info = cloudinary_service.debug_info()
+    logo_url = cloudinary_service.get_logo_url(120, 40)
+    return {
+        "debug_info": debug_info,
+        "logo_url": logo_url
+    }
