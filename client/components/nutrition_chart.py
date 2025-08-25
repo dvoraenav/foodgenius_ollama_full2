@@ -46,94 +46,67 @@ class NutritionChart(QFrame):
         self.create_chart(nutrition_data)
     
     def create_chart(self, nutrition_data):
-        """Create a beautiful pie chart for nutrition data"""
-        # Calculate calories from macronutrients (protein=4cal/g, carbs=4cal/g, fat=9cal/g)
-        protein_cal = nutrition_data['protein'] * 4
-        carbs_cal = nutrition_data['carbs'] * 4
-        fat_cal = nutrition_data['fat'] * 9
-        
-        # Ensure we have meaningful data - use default if all zeros
+        """Pie/Donut נקי בלי רווחים וללא חפיפות טקסט"""
+        # חישוב לפי קלוריות מכל מאקרו
+        protein_cal = float(nutrition_data.get('protein', 0)) * 4
+        carbs_cal   = float(nutrition_data.get('carbs',   0)) * 4
+        fat_cal     = float(nutrition_data.get('fat',     0)) * 9
+
         if protein_cal == 0 and carbs_cal == 0 and fat_cal == 0:
-            protein_cal, carbs_cal, fat_cal = 100, 140, 135
-            nutrition_data = {'calories': 375, 'protein': 25, 'carbs': 35, 'fat': 15}
-        
-        # Data for pie chart - only show non-zero values
-        sizes = []
-        labels = []
-        colors = []
-        
-        if protein_cal > 5:
-            sizes.append(protein_cal)
-            labels.append(f'Protein\n{nutrition_data["protein"]}g')
-            colors.append('#10b981')  # Green
-            
-        if carbs_cal > 5:
-            sizes.append(carbs_cal)
-            labels.append(f'Carbs\n{nutrition_data["carbs"]}g')
-            colors.append('#0ea5e9')  # Blue
-            
-        if fat_cal > 5:
-            sizes.append(fat_cal)
-            labels.append(f'Fat\n{nutrition_data["fat"]}g')
-            colors.append('#f59e0b')  # Orange
-        
-        # Create matplotlib figure with better proportions
-        fig = Figure(figsize=(7, 6), dpi=90, facecolor='white')
+            protein_cal, carbs_cal, fat_cal = 100, 140, 135  # fallback סביר
+
+        # סדר עקבי + סינון אפסים
+        parts = [
+            ("Carbs",   carbs_cal,   "#38bdf8", nutrition_data.get("carbs",   0)),
+            ("Protein", protein_cal, "#34d399", nutrition_data.get("protein", 0)),
+            ("Fat",     fat_cal,     "#a78bfa", nutrition_data.get("fat",     0)),
+        ]
+        parts = [p for p in parts if p[1] > 0.01]
+
+        labels  = [p[0] for p in parts]
+        sizes   = [p[1] for p in parts]       # בקלוריות – לזה pie מסתכל
+        colors  = [p[2] for p in parts]
+        grams   = [int(round(p[3])) for p in parts]  # לגרמים ב-legend
+
+        # פיגור וקאנבס
+        fig = Figure(figsize=(7, 5), dpi=100, facecolor='white', tight_layout=True)
         canvas = FigureCanvas(fig)
-        
-        # Create subplot with custom positioning
-        ax = fig.add_subplot(111, position=[0.1, 0.1, 0.8, 0.7])
-        
-        # Create pie chart with better styling
-        wedges, texts, autotexts = ax.pie(
-            sizes, 
-            labels=labels, 
+        ax = fig.add_subplot(111)
+
+        # דונאט נקי: בלי explode, בלי קצוות לבנים, בלי labels על הפלח
+        wedges, _texts, autotexts = ax.pie(
+            sizes,
+            labels=None,
             colors=colors,
-            autopct='%1.0f%%',
+            autopct=lambda pct: f"{pct:.0f}%" if pct >= 4 else "",  # מציגים אחוזים רק מפלחי 4%+
             startangle=90,
-            explode=[0.05] * len(sizes),  # Smaller separation
-            textprops={'fontsize': 12, 'color': '#374151', 'weight': 'bold'},
-            pctdistance=0.75,  # Percentages closer to center
-            labeldistance=1.15,  # Labels further out
-            wedgeprops={'linewidth': 2, 'edgecolor': 'white'}  # White borders
+            counterclock=False,
+            pctdistance=0.72,
+            wedgeprops={'width': 0.48, 'edgecolor': 'none', 'linewidth': 0},  # אין חריצים
+            textprops={'fontsize': 11, 'color': 'white', 'weight': 'bold'}
         )
-        
-        # Style the title - positioned at top
-        fig.suptitle(f'Total: {nutrition_data["calories"]} calories', 
-                    fontsize=16, fontweight='bold', color='#374151', y=0.9)
-        
-        # Style the percentage text
-        for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_fontsize(11)
-            autotext.set_fontweight('bold')
-        
-        # Style the labels - make them more readable
-        for text in texts:
-            text.set_fontsize(11)
-            text.set_color('#374151')
-            text.set_fontweight('600')
-            text.set_ha('center')  # Center alignment
-        
-        # Perfect circle
-        ax.axis('equal')
-        
-        # Remove axes completely
+
+        # כותרת קלוריות — משאירים כמו שהיה
+        fig.suptitle(f'Total: {int(nutrition_data.get("calories", 0))} calories',
+                    fontsize=16, fontweight='bold', color='#374151', y=0.98)
+
+        # Legend אלגנטי עם גרמים
+        legend_labels = [f"{lbl}  {g}g" for lbl, g in zip(labels, grams)]
+        ax.legend(
+            wedges, legend_labels,
+            title="Macronutrients",
+            loc='center left', bbox_to_anchor=(1.02, 0.5),
+            frameon=False, borderaxespad=0.0
+        )
+
+        ax.axis('equal')      # עיגול מושלם
         ax.set_frame_on(False)
-        
-        # Add canvas to widget
+
+        # הזרקת הקאנבס ל-QWidget
         chart_layout = QVBoxLayout(self.chart_widget)
         chart_layout.setContentsMargins(0, 0, 0, 0)
         chart_layout.addWidget(canvas)
-    
-    def update_nutrition_data(self, nutrition_data):
-        """Update chart with new nutrition data"""
-        # Clear existing chart
-        for i in reversed(range(self.chart_widget.layout().count())): 
-            self.chart_widget.layout().itemAt(i).widget().setParent(None)
-        
-        # Create new chart
-        self.create_chart(nutrition_data)
+
 
 
 # Simple local nutrition calculation
