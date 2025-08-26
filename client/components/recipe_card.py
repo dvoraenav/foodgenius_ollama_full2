@@ -1,10 +1,11 @@
+from typing import Callable
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QWidget
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 import requests
 
 class RecipeCard(QFrame):
-    def __init__(self, summary: dict, on_open):
+    def __init__(self, summary: dict, on_open: Callable[[str], None]):
         super().__init__()
         self.setProperty("class", "card")
         self.setStyleSheet("""
@@ -19,7 +20,7 @@ class RecipeCard(QFrame):
         """)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(0,0,0,0)
+        root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)
 
         # --- Banner עליון (רק התמונה) ---
@@ -44,24 +45,22 @@ class RecipeCard(QFrame):
 
         # --- אזור תוכן מתחת לתמונה ---
         content = QVBoxLayout()
-        content.setContentsMargins(12,8,12,12)
+        content.setContentsMargins(12, 8, 12, 12)
         content.setSpacing(8)
         root.addLayout(content)
 
-        title = QLabel(summary.get("title",""))
-        title.setProperty("class","title")
+        title = QLabel(summary.get("title", ""))
+        title.setProperty("class", "title")
         title.setWordWrap(True)
         content.addWidget(title)
 
         badges = QHBoxLayout()
 
-        # קלוריות (דמה)
         cal = int((summary.get("nutrition") or {}).get("cal", 0))
         cal_lbl = QLabel(f"{cal} קק")
         cal_lbl.setStyleSheet("background:#eef2ff; color:#1f2937; padding:2px 8px; border-radius:10px; font-size:12px;")
         badges.addWidget(cal_lbl, 0, Qt.AlignRight)
 
-        # תגיות מה-MealDB (בלבד)
         for tag in (summary.get("tags") or [])[:4]:
             t = QLabel(tag)
             t.setStyleSheet("background:#eef2ff; color:#1f2937; padding:2px 8px; border-radius:10px; font-size:12px;")
@@ -70,10 +69,23 @@ class RecipeCard(QFrame):
         badges.addStretch(1)
         content.addLayout(badges)
 
+        # --- כפתור לפרטים ---
+        rid = str(
+            summary.get("id")
+            or summary.get("idMeal")
+            or summary.get("recipe_id")
+            or summary.get("rid")
+            or ""
+        )
         btn = QPushButton("לפרטים")
         btn.setProperty("accent", True)
-        btn.clicked.connect(lambda: on_open(summary.get("id")))
         content.addWidget(btn)
+
+        if rid and callable(on_open):
+            # QPushButton.clicked מעביר פרמטר checked, לכן מוסיפים ברירת מחדל
+            btn.clicked.connect(lambda checked=False, rid=rid: on_open(rid))
+        else:
+            btn.setEnabled(False)
 
         # --- טעינת התמונה עם אפקט cover בתוך הבאנר בלבד ---
         url = summary.get("image")

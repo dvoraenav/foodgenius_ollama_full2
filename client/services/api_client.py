@@ -68,4 +68,11 @@ class ApiClient:
         except Exception as e:
             print(f"Error testing nutrition API: {e}")
             return {"api_available": False, "error": str(e)}
-    
+    def get_kits(self):
+             return self.get("/orders/kits")
+
+    def place_order(self, payload: dict):
+             return self.post("/orders", payload)
+
+    def list_orders(self):
+             return self.get("/orders")

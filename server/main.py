@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api import recipe_routes
 from api.nutrition import router as nutrition_router
-
+from api.orders import router as orders_router   # למעלה יחד עם שאר הראוטרים
 load_dotenv()
 load_dotenv()
 print(f"DEBUG: CLOUDINARY_URL = {os.getenv('CLOUDINARY_URL')}")
@@ -24,7 +24,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(recipe_routes.router, prefix="/recipes", tags=["recipes"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
 app.include_router(nutrition_router) 
-
+app.include_router(orders_router, prefix="/orders", tags=["orders"])
 @app.on_event("startup")
 def _startup():
     init_db()
@@ -41,3 +41,6 @@ def test_cloudinary():
         "debug_info": debug_info,
         "logo_url": logo_url
     }
+
+# ...
+
