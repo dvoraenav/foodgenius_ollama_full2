@@ -13,7 +13,7 @@ KITS = [
         "title": "Sushi Starter",
         "subtitle": "כל מה שצריך ל-2 רולים",
         "price": 79,
-        "image": "https://res.cloudinary.com/demo/image/upload/v1711111111/sushi.png",
+        "image": "https://tse3.mm.bing.net/th/id/OIP.-aNnJc0ncLaGmSF2_WJCCQHaE7?rs=1&pid=ImgDetMain&o=7&rm=3",
         "items": ["אורז סושי", "אצות נורי", "חומץ אורז", "סוכר", "מלח", "מחצלת גלגול"]
     },
     {
@@ -29,7 +29,7 @@ KITS = [
         "title": "Vegan Bowl",
         "subtitle": "קערות בריאות ל-2",
         "price": 69,
-        "image": "https://res.cloudinary.com/demo/image/upload/v1711111111/bowl.png",
+        "image": "https://www.sarayanews.com/image.php?token=499bbfa273d439a28eba3a39df45a234&size=",
         "items": ["קינואה", "חומוס מבושל", "אבוקדו", "ירקות שורש", "טחינה"]
     },
     {

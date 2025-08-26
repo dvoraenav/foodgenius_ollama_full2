@@ -1,193 +1,231 @@
 # client/views/orders_page.py
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget,
-    QTableWidgetItem, QMessageBox, QDialog, QListWidget, QListWidgetItem,
-    QFormLayout, QLineEdit, QTextEdit, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QGridLayout, QFrame, QLineEdit, QTextEdit, QFormLayout, QStackedWidget
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+import requests
+
 from services.api_client import ApiClient
+from services.auth import AUTH
 
 
-class KitsDialog(QDialog):
-    """דיאלוג בחירת קיט להזמנה"""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("בחרי ערכת אוכל")
-        self.setMinimumWidth(520)
-        self.api = ApiClient()
-        self.selected_kit = None
+class KitCard(QFrame):
+    """כרטיס ערכה לתצוגת הגריד"""
+    def __init__(self, kit: dict, on_order):
+        super().__init__()
+        self.kit = kit
+        self.setProperty("class", "card")
+        self.setStyleSheet('''
+            QFrame[class="card"]{background:#fff;border:1px solid #e5e7eb;border-radius:16px;}
+            QLabel[class="title"]{font-weight:700;font-size:14px;}
+            QPushButton[accent="true"]{background:#10b981;color:white;border:none;border-radius:10px;padding:8px 12px;font-weight:600;}
+            QPushButton[accent="true"]:hover{background:#059669;}
+        ''')
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
+        root.setContentsMargins(0,0,0,0)
         root.setSpacing(8)
 
-        title = QLabel("בחרי ערכה להזמנה:")
-        title.setStyleSheet("font-weight:700;")
-        root.addWidget(title)
+        # תמונה
+        banner = QFrame()
+        banner.setFixedHeight(140)
+        banner.setStyleSheet("background:#0f172a;border-top-left-radius:16px;border-top-right-radius:16px;")
+        root.addWidget(banner)
+        self.img = QLabel(banner)
+        self.img.setAlignment(Qt.AlignCenter)
+        self.img.setGeometry(0,0,banner.width(),banner.height())
+        banner.resizeEvent = lambda e: (self.img.setGeometry(0,0,banner.width(),banner.height()), QFrame.resizeEvent(banner,e))
 
-        self.listw = QListWidget()
-        self.listw.itemDoubleClicked.connect(self.accept_choose)
-        root.addWidget(self.listw, 1)
+        url = kit.get("image")
+        if url:
+            try:
+                r = requests.get(url, timeout=8); r.raise_for_status()
+                p = QPixmap(); p.loadFromData(r.content)
+                if not p.isNull():
+                    self.img.setPixmap(p.scaled(self.img.width() or 1, self.img.height() or 1,
+                                                Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
+            except Exception:
+                self.img.setText("")
 
-        btns = QHBoxLayout()
-        choose = QPushButton("בחרי")
-        choose.setProperty("accent", True)
-        choose.clicked.connect(self.accept_choose)
-        cancel = QPushButton("ביטול")
-        cancel.clicked.connect(self.reject)
-        btns.addStretch(1)
-        btns.addWidget(cancel)
-        btns.addWidget(choose)
-        root.addLayout(btns)
+        # תוכן
+        body = QVBoxLayout()
+        body.setContentsMargins(12,8,12,12)
+        body.setSpacing(6)
+        root.addLayout(body)
 
-        # טען קיטים
-        try:
-            kits = self.api.get("/orders/kits")
-            self._kits = kits or []
-            for k in self._kits:
-                it = QListWidgetItem(f'{k["title"]} — ₪{k["price"]}  ·  {k.get("subtitle","")}')
-                it.setData(Qt.UserRole, k)
-                self.listw.addItem(it)
-        except Exception as e:
-            QMessageBox.warning(self, "שגיאה", f"טעינת קיטים נכשלה:\n{e}")
+        title = QLabel(kit.get("title","")); title.setProperty("class","title"); title.setWordWrap(True)
+        body.addWidget(title)
 
-    def accept_choose(self):
-        it = self.listw.currentItem()
-        if not it:
-            return
-        self.selected_kit = it.data(Qt.UserRole)
-        self.accept()
+        sub = QLabel(kit.get("subtitle",""))
+        sub.setStyleSheet("color:#6b7280;")
+        body.addWidget(sub)
 
+        price = QLabel(f'₪{kit.get("price",0)}')
+        price.setStyleSheet("font-weight:700;")
+        body.addWidget(price)
 
-class OrderFormDialog(QDialog):
-    """טופס פרטי הזמנה עבור קיט שנבחר"""
-    def __init__(self, kit: dict, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("פרטי הזמנה")
-        self.setMinimumWidth(520)
-        self.kit = kit
+        body.addStretch(1)
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(10)
-
-        head = QLabel(f'🧺 {kit["title"]} — ₪{kit["price"]}')
-        head.setStyleSheet("font-weight:700; font-size:15px;")
-        root.addWidget(head)
-
-        card = QFrame()
-        card.setProperty("class", "card")
-        card.setStyleSheet('QFrame[class="card"]{background:#fff;border:1px solid #e5e7eb;border-radius:12px;}')
-        form = QFormLayout(card)
-        form.setContentsMargins(12, 12, 12, 12)
-        self.full_name = QLineEdit(); self.full_name.setPlaceholderText("שם מלא")
-        self.phone = QLineEdit(); self.phone.setPlaceholderText("טלפון")
-        self.address = QLineEdit(); self.address.setPlaceholderText("כתובת מלאה")
-        self.notes = QTextEdit(); self.notes.setPlaceholderText("הערות (לא חובה)")
-        form.addRow("שם מלא:", self.full_name)
-        form.addRow("טלפון:", self.phone)
-        form.addRow("כתובת:", self.address)
-        form.addRow("הערות:", self.notes)
-        root.addWidget(card)
-
-        btns = QHBoxLayout()
-        submit = QPushButton("שליחה")
-        submit.setProperty("accent", True)
-        submit.clicked.connect(self.validate_and_accept)
-        cancel = QPushButton("ביטול")
-        cancel.clicked.connect(self.reject)
-        btns.addStretch(1)
-        btns.addWidget(cancel)
-        btns.addWidget(submit)
-        root.addLayout(btns)
-
-    def validate_and_accept(self):
-        if not self.full_name.text().strip() or not self.phone.text().strip() or not self.address.text().strip():
-            QMessageBox.information(self, "חסר", "נא למלא שם מלא, טלפון וכתובת.")
-            return
-        self.accept()
-
-    def payload(self) -> dict:
-        return {
-            "kit_id": self.kit["id"],
-            "full_name": self.full_name.text().strip(),
-            "phone": self.phone.text().strip(),
-            "address": self.address.text().strip(),
-            "notes": self.notes.toPlainText().strip(),
-            # אפשר להוסיף user_email אם תרצי: "user_email": AUTH.user.get("email")
-        }
+        btn = QPushButton("הזמנה"); btn.setProperty("accent", True)
+        btn.clicked.connect(lambda: on_order(kit))
+        body.addWidget(btn)
 
 
 class OrdersPage(QWidget):
+    """עמוד יחיד – בחירת ערכה -> טופס -> הצלחה (בלי דיאלוגים, בלי טבלה)"""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.api = ApiClient()
+        self._selected_kit: dict | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        root.setContentsMargins(0,0,0,0)
         root.setSpacing(10)
 
-        # כותרת + כפתורים
+        # כותרת עליונה
         header = QHBoxLayout()
-        title = QLabel("🧺 ההזמנות שלי")
-        title.setStyleSheet("font-weight:700; font-size:16px;")
+        title = QLabel("🧺 הזמנת ערכת אוכל")
+        title.setStyleSheet("font-weight:700;font-size:16px;")
         header.addWidget(title)
         header.addStretch(1)
-
-        self.btn_browse = QPushButton("עיין בקיטים")
-        self.btn_browse.setProperty("accent", True)
-        header.addWidget(self.btn_browse)
-
-        self.btn_refresh = QPushButton("רענון")
-        header.addWidget(self.btn_refresh)
-
         root.addLayout(header)
 
-        # טבלה להצגת הזמנות (שדות אמיתיים מהשרת)
-        self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels(["תאריך", "קיט", "מחיר (₪)", "שם מלא", "טלפון", "כתובת", "הערות"])
-        self.table.horizontalHeader().setStretchLastSection(True)
-        root.addWidget(self.table, 1)
+        # סטאק פנימי של המצבים
+        self.stack = QStackedWidget()
+        root.addWidget(self.stack, 1)
+
+        # --- מצב 1: גריד קיטים ---
+        self.page_grid = QWidget()
+        grid_wrap = QVBoxLayout(self.page_grid); grid_wrap.setContentsMargins(0,0,0,0); grid_wrap.setSpacing(8)
+
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True)
+        self.grid_host = QWidget(); self.grid = QGridLayout(self.grid_host)
+        self.grid.setHorizontalSpacing(14); self.grid.setVerticalSpacing(14)
+        self.scroll.setWidget(self.grid_host)
+        grid_wrap.addWidget(self.scroll, 1)
+
+        self.stack.addWidget(self.page_grid)
+
+        # --- מצב 2: טופס הזמנה לקיט שנבחר ---
+        self.page_form = QWidget()
+        form_root = QVBoxLayout(self.page_form); form_root.setSpacing(10)
+
+        self.form_kit_title = QLabel(""); self.form_kit_title.setStyleSheet("font-weight:700;font-size:15px;")
+        form_root.addWidget(self.form_kit_title)
+
+        card = QFrame(); card.setProperty("class","card")
+        card.setStyleSheet('QFrame[class="card"]{background:#fff;border:1px solid #e5e7eb;border-radius:12px;}')
+        form = QFormLayout(card); form.setContentsMargins(12,12,12,12)
+
+        self.in_fullname = QLineEdit(); self.in_fullname.setPlaceholderText("שם מלא")
+        self.in_phone    = QLineEdit(); self.in_phone.setPlaceholderText("טלפון")
+        self.in_address  = QLineEdit(); self.in_address.setPlaceholderText("כתובת מלאה")
+        self.in_notes    = QTextEdit(); self.in_notes.setPlaceholderText("הערות (לא חובה)")
+
+        form.addRow("שם מלא:", self.in_fullname)
+        form.addRow("טלפון:", self.in_phone)
+        form.addRow("כתובת:", self.in_address)
+        form.addRow("הערות:", self.in_notes)
+        form_root.addWidget(card)
+
+        btn_row = QHBoxLayout()
+        self.btn_back_to_grid = QPushButton("חזרה");
+        self.btn_submit = QPushButton("שליחת הזמנה"); self.btn_submit.setProperty("accent", True)
+        btn_row.addStretch(1); btn_row.addWidget(self.btn_back_to_grid); btn_row.addWidget(self.btn_submit)
+        form_root.addLayout(btn_row)
+
+        self.stack.addWidget(self.page_form)
+
+        # --- מצב 3: הצלחה ---
+        self.page_done = QWidget()
+        done_root = QVBoxLayout(self.page_done); done_root.setAlignment(Qt.AlignCenter)
+        lbl_ok = QLabel("✅ ההזמנה נקלטה בהצלחה!")
+        lbl_ok.setStyleSheet("font-weight:700;font-size:18px;")
+        btn_again = QPushButton("להזמין ערכה נוספת")
+        btn_again.setProperty("accent", True)
+        done_root.addWidget(lbl_ok)
+        done_root.addWidget(btn_again)
+        self.stack.addWidget(self.page_done)
 
         # חיבורים
-        self.btn_browse.clicked.connect(self.browse_kits)
-        self.btn_refresh.clicked.connect(self.load_orders)
+        self.btn_back_to_grid.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_grid))
+        self.btn_submit.clicked.connect(self.submit_order)
+        btn_again.clicked.connect(lambda: self.stack.setCurrentWidget(self.page_grid))
 
-        # טעינה ראשונית
-        self.load_orders()
+        # טעינת קיטים
+        self.load_kits()
+        self.stack.setCurrentWidget(self.page_grid)
 
-    # ----- UI actions -----
-    def browse_kits(self):
-        dlg = KitsDialog(self)
-        if dlg.exec() != QDialog.Accepted or not dlg.selected_kit:
-            return
+    # ---------- גריד קיטים ----------
+    def load_kits(self):
+        # נקה
+        while self.grid.count():
+            w = self.grid.takeAt(0).widget()
+            if w: w.deleteLater()
 
-        form = OrderFormDialog(dlg.selected_kit, self)
-        if form.exec() == QDialog.Accepted:
-            try:
-                self.api.post("/orders", json=form.payload())
-                QMessageBox.information(self, "נשמר", "ההזמנה נקלטה בהצלחה.")
-                self.load_orders()
-            except Exception as e:
-                QMessageBox.warning(self, "שגיאה", f"לא ניתן לשמור הזמנה:\n{e}")
-
-    def load_orders(self):
+        kits = []
         try:
-            rows = self.api.get("/orders") or []
+            kits = self.api.get("/orders/kits") or []
         except Exception as e:
-            QMessageBox.warning(self, "שגיאה", f"טעינת הזמנות נכשלה:\n{e}")
+            # מציגים הודעה מינימלית במקום QMessageBox כדי להישאר "עמוד יחיד"
+            err = QLabel(f"שגיאה בטעינת קיטים: {e}")
+            err.setStyleSheet("color:#ef4444;")
+            self.grid.addWidget(err, 0, 0)
             return
 
-        self.table.setRowCount(len(rows))
-        for i, r in enumerate(rows):
-            # התאמה לשמות השדות מהשרת (OrderOut)
-            self._set(i, 0, r.get("created_at", ""))
-            self._set(i, 1, r.get("kit_title", ""))
-            self._set(i, 2, str(r.get("price", "")))
-            self._set(i, 3, r.get("full_name", ""))
-            self._set(i, 4, r.get("phone", ""))
-            self._set(i, 5, r.get("address", ""))
-            self._set(i, 6, r.get("notes", ""))
+        for i, k in enumerate(kits):
+            self.grid.addWidget(KitCard(k, self.start_order), i // 3, i % 3)
 
-    def _set(self, row: int, col: int, text: str):
-        self.table.setItem(row, col, QTableWidgetItem(str(text)))
+    def start_order(self, kit: dict):
+        self._selected_kit = kit
+        self.form_kit_title.setText(f'🧺 {kit.get("title","")} — ₪{kit.get("price",0)}')
+        # אפס שדות
+        self.in_fullname.setText("")
+        self.in_phone.setText("")
+        self.in_address.setText("")
+        self.in_notes.setPlainText("")
+        self.stack.setCurrentWidget(self.page_form)
+
+    # ---------- שליחת הזמנה ----------
+    def submit_order(self):
+        if not self._selected_kit:
+            return
+        fn = self.in_fullname.text().strip()
+        ph = self.in_phone.text().strip()
+        ad = self.in_address.text().strip()
+        if not fn or not ph or not ad:
+            # הודעה קטנה בתוך העמוד
+            if not hasattr(self, "_warn"):
+                self._warn = QLabel(""); self._warn.setStyleSheet("color:#ef4444;")
+                self.page_form.layout().addWidget(self._warn)
+            self._warn.setText("נא למלא שם, טלפון וכתובת.")
+            return
+        if hasattr(self, "_warn"):
+            self._warn.setText("")
+
+        payload = {
+            "kit_id": self._selected_kit["id"],
+            "full_name": fn,
+            "phone": ph,
+            "address": ad,
+            "notes": self.in_notes.toPlainText().strip(),
+        }
+        # אם יש משתמש מחובר – נשמור את האימייל להזמנה
+        try:
+            if getattr(AUTH, "user", None):
+                email = AUTH.user.get("email")
+                if email:
+                    payload["user_email"] = email
+        except Exception:
+            pass
+
+        try:
+            self.api.post("/orders", json=payload)
+            self.stack.setCurrentWidget(self.page_done)
+        except Exception as e:
+            if not hasattr(self, "_warn"):
+                self._warn = QLabel(""); self._warn.setStyleSheet("color:#ef4444;")
+                self.page_form.layout().addWidget(self._warn)
+            self._warn.setText(f"שגיאה בשליחה: {e}")
