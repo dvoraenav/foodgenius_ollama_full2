@@ -9,6 +9,7 @@ from views.chatbot_page import ChatbotPage
 from views.recipe_page import RecipePage         # ← חדש: דף פרטי מתכון
 from views.login_dialog import LoginDialog
 from services.auth import AUTH
+from PySide6.QtCore import Qt
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -22,10 +23,37 @@ class MainWindow(QMainWindow):
             self.show_login()
 
     def show_login(self):
-        login_dialog = LoginDialog(self)
-        login_dialog.setWindowTitle('FoodGenius - כניסה למערכת')
-        if login_dialog.exec() == QDialog.Accepted:
+        # נקה את ה־centralWidget כדי לא להשאיר תוכן מאחור
+        old = self.takeCentralWidget()
+        if old:
+            old.deleteLater()
+
+        # הסתר את החלון הראשי בזמן ההתחברות (ככה הוא לא "מבצבץ" מאחור)
+        self.hide()
+
+        # חלון התחברות גדול, ניתן להגדלה, ושומר על הסטייל הירוק הקיים
+        dlg = LoginDialog(self)
+        dlg.setWindowTitle('FoodGenius - כניסה למערכת')
+        dlg.setWindowModality(Qt.ApplicationModal)
+        dlg.setSizeGripEnabled(True)
+        dlg.setMinimumSize(900, 640)
+        dlg.resize(1024, 720)
+
+        # הוסף כפתורי מיזעור/הגדלה בחלון
+        dlg.setWindowFlags(
+            dlg.windowFlags()
+            | Qt.Window
+            | Qt.WindowMinimizeButtonHint
+            | Qt.WindowMaximizeButtonHint
+        )
+
+        # מרכז למסך
+        geom = self.screen().availableGeometry()
+        dlg.move(geom.center() - dlg.rect().center())
+
+        if dlg.exec() == QDialog.Accepted:
             self.show_main_content()
+            self.show()  # החזרת החלון הראשי
         else:
             self.close()
 
@@ -96,5 +124,9 @@ class MainWindow(QMainWindow):
         self.sidebar.set_active("recipes")  # משאיר את ההדגשה על 'Recipes'
 
     def handle_logout(self):
-        AUTH.clear_auth()
-        self.show_login()
+            # התנתקות נקייה: נקה את המרכז והצג שוב את מסך ההתחברות
+            AUTH.clear_auth()
+            old = self.takeCentralWidget()
+            if old:
+                old.deleteLater()
+            self.show_login()
