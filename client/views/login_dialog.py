@@ -6,15 +6,12 @@ import requests
 from presenters.auth_presenter import AuthPresenter
 from components.auth_ui_builder import AuthUIBuilder
 
-
 HERO_URL = "https://gilacooking.co.il/wp-content/uploads/pineapple-smoothie-recipe.jpeg"
-
 
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("התחברות")
-        # חלון גדול שאפשר להגדיל
         self.setMinimumSize(900, 620)
 
         self.presenter = AuthPresenter(self)
@@ -29,18 +26,18 @@ class LoginDialog(QDialog):
         self.layout.setContentsMargins(16, 16, 16, 16)
         self.layout.setSpacing(12)
 
-        # ---------------- HERO (תמונה + טקסט) ----------------
+        # Hero section
         self.hero = QFrame()
         self.hero.setObjectName("Hero")
-        self.hero.setFixedHeight(320)  # אפשר להעלות ל-360 אם רוצים עוד גובה
+        self.hero.setFixedHeight(320)
         self.hero.setStyleSheet('QFrame#Hero { border-radius: 14px; background: #0f172a; }')
 
-        # שכבת תמונה
+        # Hero image
         self.hero_img = QLabel(self.hero)
         self.hero_img.setGeometry(0, 0, self.hero.width(), self.hero.height())
         self.hero_img.setScaledContents(False)
 
-        # שכבת גרדיאנט + טקסט
+        # Hero overlay
         self.hero_overlay = QWidget(self.hero)
         self.hero_overlay.setGeometry(0, 0, self.hero.width(), self.hero.height())
         self.hero_overlay.setStyleSheet("""
@@ -65,7 +62,7 @@ class LoginDialog(QDialog):
 
         ov.addStretch(2)
 
-        # התאמת כיסוי התמונה בכל שינוי גודל
+        # Resize handler
         def _hero_resized(e):
             self.hero_img.setGeometry(0, 0, self.hero.width(), self.hero.height())
             self.hero_overlay.setGeometry(0, 0, self.hero.width(), self.hero.height())
@@ -75,42 +72,35 @@ class LoginDialog(QDialog):
 
         self.layout.addWidget(self.hero)
         self._load_hero()
-        # ---------------- /HERO ----------------
 
-        # Error label
+        # Form elements
         self.error_label = QLabel("")
         self.error_label.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.error_label)
 
-        # Email input
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("כתובת מייל")
         self.layout.addWidget(self.email_input)
 
-        # Name input (רק בהרשמה)
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("שם מלא")
         self.layout.addWidget(self.name_input)
 
-        # Password input
         self.pw_input = QLineEdit()
         self.pw_input.setPlaceholderText("סיסמה")
         self.pw_input.setEchoMode(QLineEdit.Password)
         self.layout.addWidget(self.pw_input)
 
-        # Toggle button
         self.toggle_button = QPushButton("אין לך חשבון? הרשם כאן")
         self.toggle_button.clicked.connect(self.toggle_mode)
         self.layout.addWidget(self.toggle_button)
 
-        # Submit button
         self.submit_button = QPushButton("התחברות")
         self.submit_button.clicked.connect(self.handle_submit)
         self.layout.addWidget(self.submit_button)
 
-        # מצב התחלתי – התחברות
+        # Initial state - login
         self.name_input.hide()
-
         self.apply_styles()
 
     def _load_hero(self):
@@ -124,7 +114,6 @@ class LoginDialog(QDialog):
                     self._hero_pix = pix
                     self._apply_hero_cover()
         except Exception:
-            # במקרה של כשל — פשוט נשאר רקע כהה, בלי שגיאה למשתמש
             pass
 
     def _apply_hero_cover(self):
@@ -159,7 +148,6 @@ class LoginDialog(QDialog):
         """
         self.setStyleSheet(style)
 
-    # ---------------- לוגיקה קיימת (ללא שינוי) ----------------
     def toggle_mode(self):
         self.is_register_mode = not self.is_register_mode
         if self.is_register_mode:
@@ -214,6 +202,6 @@ class LoginDialog(QDialog):
             self.ui.show_error_message(self.error_label, "יש להזין כתובת מייל")
             return False
         if '@' not in email or '.' not in email:
-            self.ui.show_error_message(self.error_label, "כתובת מייל לא תקינה – חייבת לכלול @ ו־.")
+            self.ui.show_error_message(self.error_label, "כתובת מייל לא תקינה – חייבת לכלול @ ו-.")
             return False
         return True

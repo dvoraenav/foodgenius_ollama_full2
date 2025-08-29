@@ -1,4 +1,3 @@
-# client/views/recipe_view.py - Updated version
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTextEdit, QListWidget, QListWidgetItem,
     QWidget, QHBoxLayout, QFrame, QPushButton
@@ -8,16 +7,12 @@ from PySide6.QtCore import Qt
 import requests
 from services.api_client import ApiClient
 
-# Try to import nutrition chart - if fails, app continues normally
 try:
     from components.nutrition_chart import NutritionChart, calculate_nutrition_from_ingredients
     CHART_AVAILABLE = True
-    print("Nutrition chart imported successfully!")
-except ImportError as e:
+except ImportError:
     CHART_AVAILABLE = False
-    print(f"Nutrition chart not available: {e}")
     
-    # Define a simple fallback function if import fails
     def calculate_nutrition_from_ingredients(ingredients):
         return {'calories': 300, 'protein': 20, 'carbs': 35, 'fat': 12}
 
@@ -35,10 +30,9 @@ class RecipeView(QDialog):
         root.setContentsMargins(10,10,10,10)
         root.setSpacing(10)
 
-        # ===== Header: Buttons (left) + Centered Title + dummy spacer (right) =====
+        # Header: Buttons + Centered Title
         header = QHBoxLayout()
         
-        # Left buttons container
         left_buttons = QHBoxLayout()
         left_buttons.setSpacing(8)
         
@@ -48,7 +42,7 @@ class RecipeView(QDialog):
         left_buttons.addWidget(self.btn_ai)
         
         self.btn_nutrition = QPushButton("Nutrition")
-        self.btn_nutrition.setStyleSheet("background:#0ea5e9; color:#fff; border:none;")  # Blue button
+        self.btn_nutrition.setStyleSheet("background:#0ea5e9; color:#fff; border:none;")
         self.btn_nutrition.clicked.connect(self.open_nutrition)
         left_buttons.addWidget(self.btn_nutrition)
         
@@ -59,14 +53,13 @@ class RecipeView(QDialog):
         self.title_label.setStyleSheet("font-size:22px; font-weight:800;")
         header.addWidget(self.title_label, 1)
 
-        # spacer עם רוחב הכפתורים, כדי שהכותרת באמת תהיה באמצע
         self._right_spacer = QLabel("")
-        self._right_spacer.setFixedWidth(150)  # Approximate width of both buttons
+        self._right_spacer.setFixedWidth(150)
         header.addWidget(self._right_spacer, 0, Qt.AlignRight)
 
         root.addLayout(header)
 
-        # ===== Banner image (fills width) with smart cover/contain =====
+        # Banner image
         self.banner = QWidget()
         self.banner.setFixedHeight(240)
         self.banner.setStyleSheet("background:#0f172a; border-radius:12px;")
@@ -84,10 +77,9 @@ class RecipeView(QDialog):
             QWidget.resizeEvent(self.banner, e)
         self.banner.resizeEvent = _resize_banner
 
-        # Store current recipe data for nutrition dialog
         self.current_recipe_data = None
 
-        # ===== Ingredients card =====
+        # Ingredients card
         root.addWidget(self._section_title("Ingredients:"))
         ing_card = QFrame(); ing_card.setProperty("class","card")
         ing_card.setStyleSheet('QFrame[class="card"]{background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;}')
@@ -97,7 +89,7 @@ class RecipeView(QDialog):
         ing_lay.addWidget(self.ing_list)
         root.addWidget(ing_card)
 
-        # ===== Steps card =====
+        # Steps card
         root.addWidget(self._section_title("Steps:"))
         steps_card = QFrame(); steps_card.setProperty("class","card")
         steps_card.setStyleSheet('QFrame[class="card"]{background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;}')
@@ -117,14 +109,14 @@ class RecipeView(QDialog):
         return lbl
 
     def _apply_smart(self):
-        """Smart cover: אם הקרופ גדול מדי – עוברים ל-contain."""
+        """Smart cover: אם הקרופ גדול מדי — עוברים ל-contain."""
         W, H = max(1, self.img.width()), max(1, self.img.height())
         pw, ph = self._orig.width(), self._orig.height()
         s_cover = max(W/pw, H/ph)
         if s_cover > 1.35:
-            scaled = self._orig.scaled(W, H, Qt.KeepAspectRatio, Qt.SmoothTransformation)  # contain
+            scaled = self._orig.scaled(W, H, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         else:
-            scaled = self._orig.scaled(W, H, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)  # cover
+            scaled = self._orig.scaled(W, H, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
         self.img.setPixmap(scaled)
 
     def load(self, rid: str):
@@ -135,11 +127,10 @@ class RecipeView(QDialog):
             self.btn_nutrition.setEnabled(False)
             return
 
-        # Store recipe data for later use
         self.current_recipe_data = rec
         self.title_label.setText(rec.get("title",""))
 
-        # image
+        # Load image
         url = rec.get("image")
         if url:
             try:
@@ -151,7 +142,7 @@ class RecipeView(QDialog):
         else:
             self.img.setText("No image")
 
-        # ingredients
+        # Load ingredients
         self.ing_list.clear()
         ingredients = rec.get("ingredients") or []
         
@@ -162,13 +153,13 @@ class RecipeView(QDialog):
             it.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             self.ing_list.addItem(it)
 
-        # steps
+        # Load steps
         steps = rec.get("steps") or []
         steps_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)) or "No steps available."
         self.steps_area.setPlainText(steps_text)
 
     def open_nutrition(self):
-        """פותח דיאלוג עם גרף התזונה - עם נתונים אמיתיים מ-API"""
+        """פותח דיאלוג עם גרף התזונה"""
         if not self.current_recipe_data:
             return
             
@@ -196,19 +187,10 @@ class RecipeView(QDialog):
             """)
             title.setAlignment(Qt.AlignCenter)
             layout.addWidget(title)
-            
-            # Loading message
-            loading_label = QLabel("Loading real nutrition data...")
-            loading_label.setStyleSheet("color: #6b7280; font-size: 14px;")
-            loading_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(loading_label)
 
             ingredients = self.current_recipe_data.get("ingredients") or []
             nutrition_data = calculate_nutrition_from_ingredients(ingredients)
             source_text = "Estimated values based on local ingredient database"
-            
-            # Remove loading
-            loading_label.setParent(None)
             
             # Create chart
             chart = NutritionChart(nutrition_data)
@@ -231,20 +213,19 @@ class RecipeView(QDialog):
             dlg.exec()
             
         except Exception as e:
-            print(f"Error opening nutrition dialog: {e}")
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(self, "Error", f"Could not open nutrition chart: {str(e)}")
 
     def open_ai(self):
-        # נסי להשתמש בדיאלוג הייעודי אם קיים
+        # נסה להשתמש בדיאלוג הייעודי אם קיים
         try:
             from views.ai_chat_dialog import AIChatDialog
             AIChatDialog(recipe_id=self.recipe_id, parent=self).exec()
             return
         except ImportError:
-            pass  # אין דיאלוג ייעודי – ניפול לפאלבק
+            pass
 
-        # פאלבק: דיאלוג רגיל עם וויג'ט AIChat
+        # פולבאק: דיאלוג רגיל עם ווידג'ט AIChat
         from PySide6.QtWidgets import QDialog, QVBoxLayout
         from components.ai_chat import AIChat
 
