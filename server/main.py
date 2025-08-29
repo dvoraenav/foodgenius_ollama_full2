@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api import recipe_routes
-from api.orders import router as orders_router   
+from api.orders import router as orders_router
 
 load_dotenv()
 
@@ -21,6 +21,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(recipe_routes.router, prefix="/recipes", tags=["recipes"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
 app.include_router(orders_router, prefix="/orders", tags=["orders"])
+
 @app.on_event("startup")
 def _startup():
     init_db()
@@ -28,15 +29,3 @@ def _startup():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-@app.get("/test-cloudinary")
-def test_cloudinary():
-    from services.cloudinary_service import cloudinary_service
-    debug_info = cloudinary_service.debug_info()
-    logo_url = cloudinary_service.get_logo_url(120, 40)
-    return {
-        "debug_info": debug_info,
-        "logo_url": logo_url
-    }
-
-# ...
-

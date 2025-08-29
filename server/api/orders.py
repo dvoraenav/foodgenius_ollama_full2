@@ -1,4 +1,3 @@
-# server/api/orders.py
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -6,7 +5,6 @@ import sqlite3, os, time
 
 router = APIRouter()
 
-# ---- קטלוג ערכות (אפשר לעבור לדאטהבייס אח"כ) ----
 KITS = [
     {
         "id": "sushi_basic",
@@ -42,7 +40,6 @@ KITS = [
     },
 ]
 
-# ---- SQLite (ללא תלות בקוד קיים) ----
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "foodgenius.db")
 
 def _conn():
@@ -66,15 +63,12 @@ def _init_db():
         """)
 _init_db()
 
-# ---- סכימות ----
 class OrderIn(BaseModel):
     kit_id: str = Field(..., examples=["sushi_basic"])
     full_name: str
     phone: str
     address: str
     notes: Optional[str] = ""
-
-    # אופציונלי – אם יש לך מזהה משתמש/אימייל בלקוח
     user_email: Optional[str] = None
 
 class OrderOut(BaseModel):
@@ -89,7 +83,6 @@ class OrderOut(BaseModel):
     notes: Optional[str] = ""
     user_email: Optional[str] = None
 
-# ---- ראוטים ----
 @router.get("/kits")
 def list_kits() -> List[dict]:
     return KITS
@@ -123,7 +116,7 @@ def create_order(order: OrderIn):
 
 @router.get("", response_model=List[OrderOut])
 def my_orders(email: Optional[str] = Query(default=None)):
-    """היסטוריית הזמנות (אפשר לסנן לפי אימייל אם רוצים)"""
+    """היסטוריית הזמנות"""
     q = "SELECT id, created_at, user_email, kit_id, kit_title, price, full_name, phone, address, notes FROM orders"
     args: tuple = ()
 
