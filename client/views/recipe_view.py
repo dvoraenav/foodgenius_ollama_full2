@@ -204,13 +204,17 @@ class RecipeView(QDialog):
             layout.addWidget(loading_label)
             
             # Try API first, fallback to local
-            ingredients = self.current_recipe_data.get("ingredients") or []
-            nutrition_data = self.api.get_nutrition_data(ingredients)
-            source_text = "Real nutrition data from API-Ninjas"
+            # ingredients = self.current_recipe_data.get("ingredients") or []
+            # nutrition_data = self.api.get_nutrition_data(ingredients)
+            # source_text = "Real nutrition data from API-Ninjas"
             
-            if not nutrition_data:
-                nutrition_data = calculate_nutrition_from_ingredients(ingredients)
-                source_text = "Estimated values based on ingredient database"
+            # if not nutrition_data:
+            #     nutrition_data = calculate_nutrition_from_ingredients(ingredients)
+            #     source_text = "Estimated values based on ingredient database"
+
+            ingredients = self.current_recipe_data.get("ingredients") or []
+            nutrition_data = calculate_nutrition_from_ingredients(ingredients)
+            source_text = "Estimated values based on local ingredient database"
             
             # Remove loading
             loading_label.setParent(None)
