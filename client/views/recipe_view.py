@@ -202,15 +202,6 @@ class RecipeView(QDialog):
             loading_label.setStyleSheet("color: #6b7280; font-size: 14px;")
             loading_label.setAlignment(Qt.AlignCenter)
             layout.addWidget(loading_label)
-            
-            # Try API first, fallback to local
-            # ingredients = self.current_recipe_data.get("ingredients") or []
-            # nutrition_data = self.api.get_nutrition_data(ingredients)
-            # source_text = "Real nutrition data from API-Ninjas"
-            
-            # if not nutrition_data:
-            #     nutrition_data = calculate_nutrition_from_ingredients(ingredients)
-            #     source_text = "Estimated values based on ingredient database"
 
             ingredients = self.current_recipe_data.get("ingredients") or []
             nutrition_data = calculate_nutrition_from_ingredients(ingredients)
