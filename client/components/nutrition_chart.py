@@ -1,108 +1,174 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QFrame, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QFrame, QSizePolicy, QHBoxLayout, QLabel
 from PySide6.QtCore import Qt
-import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from PySide6.QtCharts import QChart, QPieSeries, QChartView, QPieSlice
+from PySide6.QtGui import QFont, QPainter, QColor, QBrush
+from PySide6.QtGui import QPen
+
 
 class NutritionChart(QFrame):
     def __init__(self, nutrition_data=None, parent=None):
         super().__init__(parent)
         self.setProperty("class", "card")
-        self.setFixedHeight(280)  # גובה קבוע שלא “ימשוך” את הדף
+        self.setFixedHeight(350)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
         self.setStyleSheet('''
             QFrame[class="card"] {
-                background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 16px;
             }
             QFrame[class="card"]:hover { border-color: #10b981; }
         ''')
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(15, 15, 15, 15)
-        root.setSpacing(5)
+        # === root layout ===
+        self.root = QVBoxLayout(self)
+        self.root.setContentsMargins(15, 15, 15, 15)
+        self.root.setSpacing(10)
 
-        self.chart_widget = QWidget()
-        root.addWidget(self.chart_widget)
+        # === title (נשאר קבוע, רק הטקסט מתעדכן) ===
+        self.title_label = QLabel()
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setStyleSheet("font-size: 20px; font-weight: 800; color: #374151; margin-bottom: 6px;")
+        self.root.addWidget(self.title_label)
 
-        self._canvas = None
+        # === אזור הגרף + לג'נד ===
+        self.chart_row = QHBoxLayout()
+        self.chart_row.setContentsMargins(0, 0, 0, 0)
+        self.chart_row.setSpacing(16)
+        self.root.addLayout(self.chart_row)
 
+        # --- chart/series/view בניה חד-פעמית ---
+        self.series = QPieSeries()
+        self.series.setHoleSize(0.0)   # חשוב: בלי חור
+        self.series.setPieSize(0.96)   # מעט גדול יותר
+        self.series.setLabelsVisible(True)
+
+        self.chart = QChart()
+        self.chart.addSeries(self.series)
+        self.chart.setBackgroundVisible(False)
+        self.chart.legend().setVisible(False)  # לג'נד מותאם משלנו
+        self.chart.setAnimationOptions(QChart.SeriesAnimations)
+
+        self.chart_view = QChartView(self.chart)
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
+        self.chart_view.setMinimumSize(300, 250)
+        self.chart_view.setStyleSheet("background: transparent;")
+        self.chart_row.addWidget(self.chart_view, 2)
+
+        # --- legend מותאם: נבנה פעם אחת ומרעננים תוכן ---
+        self.legend_widget = QWidget()
+        self.legend_layout = QVBoxLayout(self.legend_widget)
+        self.legend_layout.setContentsMargins(0, 4, 0, 0)
+        self.legend_layout.setSpacing(8)
+
+        self.legend_title = QLabel("Macronutrients")
+        self.legend_title.setStyleSheet("font-weight: 700; font-size: 13px; color: #374151;")
+        self.legend_layout.addWidget(self.legend_title)
+
+        self.legend_layout.addStretch()
+        self.chart_row.addWidget(self.legend_widget, 1)
+        self.chart_row.setAlignment(self.legend_widget, Qt.AlignLeft | Qt.AlignVCenter)
+
+
+        # נתוני ברירת מחדל
         if nutrition_data is None:
             nutrition_data = {'calories': 300, 'protein': 25, 'carbs': 35, 'fat': 15}
-        self.create_chart(nutrition_data)
 
-    def create_chart(self, nutrition_data):
-        protein_cal = float(nutrition_data.get('protein', 0)) * 4
-        carbs_cal   = float(nutrition_data.get('carbs',   0)) * 4
-        fat_cal     = float(nutrition_data.get('fat',     0)) * 9
+        self.update_nutrition_data(nutrition_data)
+
+    def update_nutrition_data(self, data: dict):
+        # 1) כותרת
+        self.title_label.setText(f"Total: {int(data.get('calories', 0))} calories")
+
+        # 2) חישובים (קלוריות לפי 4/4/9)
+        protein_cal = float(data.get('protein', 0)) * 4
+        carbs_cal   = float(data.get('carbs',   0)) * 4
+        fat_cal     = float(data.get('fat',     0)) * 9
         if protein_cal == 0 and carbs_cal == 0 and fat_cal == 0:
-            protein_cal, carbs_cal, fat_cal = 100, 140, 135
+            protein_cal, carbs_cal, fat_cal = 100, 140, 135  # fallback כמו בקוד הישן
+
+        # צבעים מדויקים (כמו שרצית)
+        CARBS_COLOR   = "#38BDF8"   # כחול
+        PROTEIN_COLOR = "#34D399"   # ירוק
+        FAT_COLOR     = "#A78BFA"   # סגול
 
         parts = [
-            ("Carbs",   carbs_cal,   "#38bdf8", nutrition_data.get("carbs",   0)),
-            ("Protein", protein_cal, "#34d399", nutrition_data.get("protein", 0)),
-            ("Fat",     fat_cal,     "#a78bfa", nutrition_data.get("fat",     0)),
+            ("Carbs",   carbs_cal,   CARBS_COLOR,   data.get("carbs",   0)),
+            ("Protein", protein_cal, PROTEIN_COLOR, data.get("protein", 0)),
+            ("Fat",     fat_cal,     FAT_COLOR,     data.get("fat",     0)),
         ]
         parts = [p for p in parts if p[1] > 0.01]
 
-        labels = [p[0] for p in parts]
-        sizes  = [p[1] for p in parts]
-        colors = [p[2] for p in parts]
-        grams  = [int(round(p[3])) for p in parts]
+        # 3) מחליפים סדרה ישנה בחדשה (בדיוק כמו שהיית עושה Figure חדש במאטפלוטליב)
+        if hasattr(self, "series") and self.series is not None:
+            self.chart.removeSeries(self.series)
+            self.series.deleteLater()
 
-        fig = Figure(figsize=(6.5, 3.8), dpi=100, facecolor='white')
-        # מפנה שוליים ללג'נד מימין כדי שלא ייחתך
-        fig.subplots_adjust(left=0.06, right=0.78, top=0.86, bottom=0.14)
-        ax = fig.add_subplot(111)
+        new_series = QPieSeries()
+        new_series.setHoleSize(0.0)   # עוגה מלאה (אם תרצי דונאט: 0.52)
+        new_series.setPieSize(0.96)
+        new_series.setLabelsVisible(True)
 
-        wedges, _texts, _auto = ax.pie(
-            sizes,
-            labels=None,
-            colors=colors,
-            autopct=lambda pct: f"{pct:.0f}%" if pct >= 4 else "",
-            startangle=90,
-            counterclock=False,
-            pctdistance=0.72,
-            wedgeprops={'width': 0.48, 'edgecolor': 'none', 'linewidth': 0},
-            textprops={'fontsize': 11, 'color': 'white', 'weight': 'bold'}
-        )
+        total = sum(v for _, v, _, _ in parts) or 1.0  # אחוזים לפי קלוריות
+        # (אם תרצי לפי גרמים: total = sum(g for (_,_,_,g) in parts) or 1.0)
 
-        fig.suptitle(
-            f'Total: {int(nutrition_data.get("calories", 0))} calories',
-            fontsize=16, fontweight='bold', color='#374151', y=0.98
-        )
+        for name, cal_value, color_hex, grams in parts:
+            sl = new_series.append(name, cal_value)
+            sl.setBrush(QColor(color_hex))
+            sl.setColor(QColor(color_hex))           # מבטיח את הגוון המדויק
+            sl.setPen(QPen(QColor("#ffffff"), 2))    # קווי הפרדה לבנים
 
-        legend_labels = [f"{lbl}  {g}g" for lbl, g in zip(labels, grams)]
-        ax.legend(
-            wedges, legend_labels,
-            title="Macronutrients",
-            loc='center left', bbox_to_anchor=(1.00, 0.5),
-            frameon=False, borderaxespad=0.0
-        )
+            pct = (cal_value / total) * 100.0        # או: grams / total * 100.0
+            sl.setLabel(f"{pct:.0f}%")               # מציגים תמיד את האחוזים
+            sl.setLabelVisible(True)
+            sl.setLabelPosition(QPieSlice.LabelInsideHorizontal)
 
-        ax.axis('equal'); ax.set_frame_on(False)
+            f = QFont(); f.setPointSize(12); f.setBold(True)
+            sl.setLabelFont(f)
+            sl.setLabelBrush(QBrush(QColor("white")))  # לבן נראה מצוין על הגוונים הללו
 
-        canvas = FigureCanvas(fig)
-        self._canvas = canvas
+        # מוסיפים את הסדרה החדשה לגרף ומעדכנים רפרנס
+        self.chart.addSeries(new_series)
+        self.series = new_series
 
-        # משתמשים בלייאאוט קיים ומרכזים את הקנבס
-        if self.chart_widget.layout() is None:
-            lay = QVBoxLayout(self.chart_widget)
-            lay.setContentsMargins(0, 0, 0, 0)
-        else:
-            lay = self.chart_widget.layout()
-        lay.addWidget(canvas, 0, Qt.AlignCenter)
+        # 4) מרעננים את הלג'נד המותאם (שם + גרמים, באותם צבעים)
+        self._rebuild_legend([(n, g, c) for (n, _cal, c, g) in parts])
 
-    def update_nutrition_data(self, data):
-        lay = self.chart_widget.layout()
-        if lay:
-            for i in reversed(range(lay.count())):
-                w = lay.itemAt(i).widget()
-                if w:
-                    w.setParent(None)
-                    w.deleteLater()
-        self.create_chart(data)
+    # ---------- עזר: בניית לג׳נד מותאם ----------
+    def _rebuild_legend(self, items):
+        # מוחקים כל פריט קיים חוץ מהכותרת הראשונה
+        while self.legend_layout.count() > 1:
+            it = self.legend_layout.takeAt(1)   # אלמנט אחרי הכותרת
+            w = it.widget()
+            if w:
+                w.deleteLater()
+
+        for name, grams, color_hex in items:
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(6)
+
+            dot = QLabel("●")
+            dot.setStyleSheet(f"color: {color_hex}; font-size: 16px;")
+            dot.setFixedWidth(18)
+
+            text = QLabel(f"{name}  {int(round(grams))}g")
+            text.setStyleSheet("font-size: 12px; color: #374151;")
+
+            row.addWidget(dot)
+            row.addWidget(text)
+            row.addStretch()
+
+            # עוטפים כל שורה ב־QWidget כדי לנקות בקלות בעדכונים
+            container = QWidget()
+            c_lay = QHBoxLayout(container)
+            c_lay.setContentsMargins(0, 0, 0, 0)
+            c_lay.setSpacing(0)
+            c_lay.addLayout(row)
+
+            self.legend_layout.addWidget(container)
+
+        self.legend_layout.addStretch()
 
 
 
