@@ -47,9 +47,10 @@ class AppSidebar(QFrame):
 
         # לוגו בתחתית
         self.logo_label = QLabel()
-        self.logo_label.setFixedSize(180, 140)  
+        self.logo_label.setFixedHeight(140)
+        self.logo_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.logo_label.setAlignment(Qt.AlignCenter)  
         self.logo_label.setScaledContents(False)
-        self.logo_label.setAlignment(Qt.AlignCenter)
         self.logo_label.setStyleSheet('''
             QLabel {
                 background: transparent;
@@ -63,7 +64,7 @@ class AppSidebar(QFrame):
         self.load_logo()
 
         lay.addStretch(1)
-        lay.addWidget(self.logo_label)
+        lay.addWidget(self.logo_label, 0, Qt.AlignHCenter | Qt.AlignBottom)
 
         # סטייל בסיסי
         self.setStyleSheet("""
