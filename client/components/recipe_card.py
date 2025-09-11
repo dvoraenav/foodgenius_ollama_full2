@@ -5,8 +5,22 @@ from PySide6.QtCore import Qt
 import requests
 
 class RecipeCard(QFrame):
+    """
+    מחלקה שמציגה כרטיס מתכון (Recipe Card) בסגנון גרפי:
+    - תמונת מתכון (באנר עליון)
+    - כותרת
+    - תגיות וקלוריות
+    - כפתור 'לפרטים' שפותח את המתכון
+    """
+
     def __init__(self, summary: dict, on_open: Callable[[str], None]):
+        """
+        :param summary: מילון עם נתוני המתכון (id, title, image, nutrition, tags)
+        :param on_open: פונקציית callback שתופעל כשלוחצים על הכפתור 'לפרטים'
+        """
         super().__init__()
+
+        # הגדרת ה־QFrame ככרטיס עם עיצוב CSS
         self.setProperty("class", "card")
         self.setStyleSheet("""
             QFrame[class="card"] {
@@ -19,6 +33,7 @@ class RecipeCard(QFrame):
             QPushButton[accent="true"]:hover { background:#059669; }
         """)
 
+        # לייאאוט ראשי של כל הכרטיס
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)
@@ -32,15 +47,19 @@ class RecipeCard(QFrame):
         )
         root.addWidget(banner)
 
+        # תווית התמונה שבתוך הבאנר
         self.img = QLabel(banner)
         self.img.setAlignment(Qt.AlignCenter)
         self.img.setGeometry(0, 0, banner.width(), banner.height())
         self.img.setStyleSheet("border:0;")
 
+        # פונקציה פנימית להתאמת התמונה לגודל הבאנר (cover)
         def _resize_banner():
             self.img.setGeometry(0, 0, banner.width(), banner.height())
             if getattr(self, "_orig_pix", None):
                 self._apply_cover()
+
+        # מחברים את פונקציית ההתאמה לאירוע שינוי גודל
         banner.resizeEvent = lambda e: (_resize_banner(), QWidget.resizeEvent(banner, e))
 
         # --- אזור תוכן מתחת לתמונה ---
@@ -49,18 +68,22 @@ class RecipeCard(QFrame):
         content.setSpacing(8)
         root.addLayout(content)
 
+        # כותרת המתכון
         title = QLabel(summary.get("title", ""))
         title.setProperty("class", "title")
         title.setWordWrap(True)
         content.addWidget(title)
 
+        # שורת תגיות וקלוריות
         badges = QHBoxLayout()
 
+        # קלוריות
         cal = int((summary.get("nutrition") or {}).get("cal", 0))
         cal_lbl = QLabel(f"{cal} קק")
         cal_lbl.setStyleSheet("background:#eef2ff; color:#1f2937; padding:2px 8px; border-radius:10px; font-size:12px;")
         badges.addWidget(cal_lbl, 0, Qt.AlignRight)
 
+        # תגיות (עד 4 בלבד)
         for tag in (summary.get("tags") or [])[:4]:
             t = QLabel(tag)
             t.setStyleSheet("background:#eef2ff; color:#1f2937; padding:2px 8px; border-radius:10px; font-size:12px;")
@@ -70,6 +93,7 @@ class RecipeCard(QFrame):
         content.addLayout(badges)
 
         # --- כפתור לפרטים ---
+        # בודקים את כל האפשרויות לשם שדה המזהה (id/rid/recipe_id וכו')
         rid = str(
             summary.get("id")
             or summary.get("idMeal")
@@ -81,8 +105,9 @@ class RecipeCard(QFrame):
         btn.setProperty("accent", True)
         content.addWidget(btn)
 
+        # אם יש מזהה וה־callback תקין – מחברים את הכפתור לפונקציה
         if rid and callable(on_open):
-            # QPushButton.clicked מעביר פרמטר checked, לכן מוסיפים ברירת מחדל
+            # QPushButton.clicked שולח גם פרמטר checked, לכן מוסיפים ברירת מחדל
             btn.clicked.connect(lambda checked=False, rid=rid: on_open(rid))
         else:
             btn.setEnabled(False)
@@ -102,6 +127,10 @@ class RecipeCard(QFrame):
             self.img.setText("No image")
 
     def _apply_cover(self):
+        """
+        מתאים את התמונה כך שתכסה את כל שטח הבאנר
+        (KeepAspectRatioByExpanding → ממלא הכל גם אם נחתך קצת).
+        """
         w = self.img.width() or 1
         h = self.img.height() or 1
         cover = self._orig_pix.scaled(w, h, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)

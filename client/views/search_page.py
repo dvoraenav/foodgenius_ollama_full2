@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal
 from presenters.search_presenter import SearchPresenter
 from components.recipe_card import RecipeCard
-from views.recipe_view import RecipeView
+from views.recipe_page import RecipePage
 
 class _SearchWorker(QThread):
     done = Signal(list)
@@ -105,7 +105,7 @@ class SearchPage(QWidget):
         if callable(self._open_recipe_cb):
             self._open_recipe_cb(rid)
             return
-        dlg = RecipeView(rid, self)
+        dlg = RecipePage(rid, self)
         dlg.exec()
 
     def search(self):
